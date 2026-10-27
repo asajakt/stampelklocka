@@ -475,6 +475,12 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('online', () => scheduleSync(0));
 
+// Hämta ändringar från andra enheter regelbundet medan appen är öppen.
+const SYNC_INTERVAL_MS = 60 * 1000;
+setInterval(() => {
+  if (document.visibilityState === 'visible') scheduleSync(0);
+}, SYNC_INTERVAL_MS);
+
 // Uppdatera klockan och pågående tid varje sekund du tittar på appen.
 setInterval(() => {
   if (document.visibilityState === 'visible') renderStampla({ list: false });

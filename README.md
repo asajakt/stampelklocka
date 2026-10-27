@@ -50,7 +50,7 @@ Utan synk sparas stämplingarna bara i den webbläsare där du gjorde dem. Vill 
 
 Synknyckeln fungerar som ett lösenord. Den som har den kan läsa och ändra dina stämplingar, så dela den inte med någon. Publishable key är däremot ofarlig att ha i appen eftersom tabellen är låst och bara kan nås via synknyckeln.
 
-Synken sker automatiskt när du stämplar, när du öppnar appen och när du får nätverk igen. Stämplar du offline synkas det senare. Rastinställningarna synkas inte, så ändrar du dem behöver du göra det på båda enheterna.
+Synken sker automatiskt när du stämplar, när du öppnar appen, när du får nätverk igen och varje minut medan appen är öppen. Stämplar du offline synkas det senare. Rastinställningarna synkas inte, så ändrar du dem behöver du göra det på båda enheterna.
 
 ## Utveckling
 
