@@ -225,12 +225,24 @@ function setSyncStatus(msg) {
     const t = syncCfg.lastSync ? `${dayFmt.format(new Date(syncCfg.lastSync))} ${timeFmt.format(new Date(syncCfg.lastSync))}` : 'aldrig';
     $('sync-status').textContent = `Synk på. Senast synkad: ${t}`;
   }
+  renderSyncNow();
+}
+
+function renderSyncNow() {
+  const btn = $('sync-now');
+  btn.hidden = !syncCfg;
+  if (!syncCfg) return;
+  const last = syncCfg.lastSync ? new Date(syncCfg.lastSync) : null;
+  const when = !last ? 'aldrig'
+    : dateKey(last) === dateKey(new Date()) ? timeFmt.format(last)
+    : `${dayFmt.format(last)} ${timeFmt.format(last)}`;
+  btn.querySelector('span').textContent = `Synkad ${when}`;
 }
 
 // ---------- Synk ----------
 
 let syncTimer = null;
-let syncing = false;
+let syncInFlight = null;
 
 function scheduleSync(delay = 500) {
   if (!syncCfg) return;
@@ -238,14 +250,18 @@ function scheduleSync(delay = 500) {
   syncTimer = setTimeout(runSync, delay);
 }
 
-// Returnerar true om synken gick igenom.
-async function runSync({ manual = false } = {}) {
-  if (!syncCfg || syncing) return false;
+// Returnerar { ok, error }. Pågår redan en synk väntar vi in den i stället för att hoppa över.
+function runSync() {
+  if (!syncCfg) return Promise.resolve({ ok: false, error: 'Synk är inte påslagen – se Inställningar' });
   if (!navigator.onLine) {
-    if (manual) setSyncStatus('Offline – synkar när du är online igen.');
-    return false;
+    setSyncStatus('Offline – synkar när du är online igen.');
+    return Promise.resolve({ ok: false, error: 'Ingen internetanslutning' });
   }
-  syncing = true;
+  syncInFlight ??= doSync().finally(() => { syncInFlight = null; });
+  return syncInFlight;
+}
+
+async function doSync() {
   const snapshot = state.stamps;
   try {
     const { merged } = await syncStamps(syncCfg, snapshot);
@@ -262,14 +278,20 @@ async function runSync({ manual = false } = {}) {
     setSyncStatus();
     render();
     if (state.stamps.some((s) => s.dirty)) scheduleSync();
-    return true;
+    return { ok: true };
   } catch (err) {
     setSyncStatus(`Synkfel: ${err.message}`);
-    if (manual) toast('Synk misslyckades');
-    return false;
-  } finally {
-    syncing = false;
+    return { ok: false, error: err.message };
   }
+}
+
+// Manuell synk (dra ner eller synkknappen): visar alltid ett resultat.
+async function syncNow() {
+  $('sync-now').classList.add('busy');
+  const { ok, error } = await runSync();
+  $('sync-now').classList.remove('busy');
+  toast(ok ? 'Synkad' : `Synk misslyckades: ${error}`);
+  return ok;
 }
 
 // ---------- Dra ner för att synka ----------
@@ -302,12 +324,17 @@ document.addEventListener('touchmove', (e) => {
   }
   // Halva fingerrörelsen, så det känns lite trögt som i andra appar.
   pullOffset = Math.min(Math.max(0, e.touches[0].clientY - pullStartY) / 2, PULL_TRIGGER + 20);
+  // Stoppa iPhones studs medan vi drar, annars kan iOS ta över gesten.
+  if (pullOffset > 0 && e.cancelable) e.preventDefault();
   const ready = pullOffset >= PULL_TRIGGER;
   $('pull').classList.toggle('ready', ready);
   setPull(pullOffset, ready ? 'Släpp för att synka' : 'Dra ner för att synka');
-}, { passive: true });
+}, { passive: false });
 
-document.addEventListener('touchend', async () => {
+document.addEventListener('touchend', endPull);
+document.addEventListener('touchcancel', endPull);
+
+async function endPull() {
   if (pullStartY === null) return;
   pullStartY = null;
   const el = $('pull');
@@ -321,16 +348,15 @@ document.addEventListener('touchend', async () => {
   el.classList.add('spinning');
   el.querySelector('b').textContent = '⟳';
   setPull(PULL_TRIGGER, 'Synkar…');
-  if (!syncCfg) {
-    toast('Synk är inte påslagen – se Inställningar');
-  } else if (await runSync({ manual: true })) {
-    toast('Synkad');
+  try {
+    await syncNow();
+  } finally {
+    el.classList.remove('spinning', 'ready');
+    el.querySelector('b').textContent = '↓';
+    setPull(0);
+    pulling = false;
   }
-  el.classList.remove('spinning', 'ready');
-  el.querySelector('b').textContent = '↓';
-  setPull(0);
-  pulling = false;
-});
+}
 
 // ---------- Redigera ----------
 
@@ -391,6 +417,7 @@ function toast(msg) {
 
 function render() {
   renderStampla();
+  renderSyncNow();
   if ($('view-historik').classList.contains('active')) renderHistorik();
 }
 
@@ -405,6 +432,7 @@ function showView(name) {
 // ---------- Händelser ----------
 
 $('stamp-btn').addEventListener('click', stampNow);
+$('sync-now').addEventListener('click', syncNow);
 $('add-btn').addEventListener('click', () => openEdit(null));
 
 $('today-list').addEventListener('click', (e) => {
@@ -490,7 +518,7 @@ $('sync-save').addEventListener('click', async () => {
   state.stamps = state.stamps.map((s) => ({ ...s, updated_at: s.updated_at ?? new Date().toISOString(), dirty: true }));
   save();
   setSyncStatus('Synkar…');
-  await runSync({ manual: true });
+  await runSync();
   if (syncCfg?.lastSync) toast('Synk klar');
 });
 $('sync-off').addEventListener('click', () => {

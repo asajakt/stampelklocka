@@ -1,5 +1,5 @@
 // Nätverk först (så att uppdateringar syns direkt), cache som reserv när du är offline.
-const CACHE = 'stampelklocka-v1';
+const CACHE = 'stampelklocka-v2';
 const SHELL = [
   './', 'index.html', 'styles.css', 'app.js', 'calc.js', 'sync.js',
   'manifest.webmanifest', 'assets/icon.svg', 'assets/icon-180.png', 'assets/icon-192.png', 'assets/icon-512.png',

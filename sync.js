@@ -1,10 +1,17 @@
 // Synk mot Supabase via två RPC-funktioner (se supabase.sql).
 // Tabellen är låst med RLS; bara den som känner till synknyckeln kommer åt sina rader.
 
+const TIMEOUT_MS = 15000;
+
 async function rpc(cfg, fn, body) {
   const base = cfg.url.replace(/\/+$/, '');
+  // iOS kan frysa en förfrågan när appen hamnar i bakgrunden; ge upp efter en stund i stället för att hänga.
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   const res = await fetch(`${base}/rest/v1/rpc/${fn}`, {
     method: 'POST',
+    cache: 'no-store',
+    signal: ctrl.signal,
     headers: {
       apikey: cfg.anonKey,
       // Äldre anon-nycklar är JWT och skickas även som Bearer. Nya sb_publishable_-nycklar räcker i apikey.
@@ -12,7 +19,9 @@ async function rpc(cfg, fn, body) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
-  });
+  }).catch((err) => {
+    throw new Error(err.name === 'AbortError' ? 'Servern svarade inte i tid' : 'Kunde inte nå servern');
+  }).finally(() => clearTimeout(timer));
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`${res.status} ${text.slice(0, 200)}`);

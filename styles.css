@@ -49,6 +49,18 @@ h2 { font-size: 1rem; margin: 24px 0 8px; color: var(--muted); font-weight: 600;
 .clock-time { font-size: 3.5rem; font-weight: 300; font-variant-numeric: tabular-nums; }
 .clock-date { color: var(--muted); text-transform: capitalize; }
 
+.sync-now {
+  margin-top: 6px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.sync-now b { display: inline-block; color: var(--primary); }
+.sync-now.busy b { animation: pull-spin 0.8s linear infinite; }
+
 .status { text-align: center; margin: 20px 0 12px; min-height: 1.4em; color: var(--muted); }
 .status strong { color: var(--text); }
 
