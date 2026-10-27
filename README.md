@@ -13,6 +13,7 @@ En enkel stämpelklocka för iPhone och dator. Tryck **IN** när du kommer och *
 - Exportera en månad som CSV (öppnas direkt i Excel).
 - Fungerar offline och kan läggas på hemskärmen som en app.
 - Valfri synk mellan telefon och dator via en gratis Supabase-databas.
+- Dra ner på skärmen (på telefonen) för att synka direkt.
 
 ## 1. Publicera appen (gratis via GitHub Pages)
 
@@ -33,7 +34,14 @@ iPhone kräver https för att appen ska kunna installeras. Enklast är GitHub Pa
 2. Tryck på **Dela** (fyrkanten med pilen) → **Lägg till på hemskärmen**.
 3. Nu finns "Stämpla" som en app-ikon och öppnas i helskärm.
 
-På datorn öppnar du samma adress i Chrome eller Edge. Där kan du också välja **Installera app** i adressfältet.
+## 2b. Installera på datorn
+
+Öppna adressen i **Edge** eller **Chrome**:
+
+- **Edge:** klicka på **⋯** uppe till höger → **Appar** → **Installera den här webbplatsen som en app** → **Installera**.
+- **Chrome:** klicka på installationsikonen längst till höger i adressfältet (en skärm med en pil), eller **⋮** → **Spara och dela** / **Casta, spara och dela** → **Installera sidan som app**.
+
+Appen får då samma stämpelklocka-ikon som på telefonen, öppnas i ett eget fönster och finns i Start-menyn. Högerklicka på ikonen i aktivitetsfältet och välj **Fäst i aktivitetsfältet** så når du den med ett klick.
 
 ## 3. Synk mellan telefon och dator (valfritt)
 

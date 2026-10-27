@@ -238,11 +238,12 @@ function scheduleSync(delay = 500) {
   syncTimer = setTimeout(runSync, delay);
 }
 
+// Returnerar true om synken gick igenom.
 async function runSync({ manual = false } = {}) {
-  if (!syncCfg || syncing) return;
+  if (!syncCfg || syncing) return false;
   if (!navigator.onLine) {
     if (manual) setSyncStatus('Offline – synkar när du är online igen.');
-    return;
+    return false;
   }
   syncing = true;
   const snapshot = state.stamps;
@@ -261,13 +262,75 @@ async function runSync({ manual = false } = {}) {
     setSyncStatus();
     render();
     if (state.stamps.some((s) => s.dirty)) scheduleSync();
+    return true;
   } catch (err) {
     setSyncStatus(`Synkfel: ${err.message}`);
     if (manual) toast('Synk misslyckades');
+    return false;
   } finally {
     syncing = false;
   }
 }
+
+// ---------- Dra ner för att synka ----------
+
+const PULL_TRIGGER = 70; // px indikatorn ska dras ner innan synk startar
+let pullStartY = null;
+let pullOffset = 0;
+let pulling = false;
+
+function setPull(offset, text) {
+  const el = $('pull');
+  el.style.transform = `translate(-50%, ${offset - 56}px)`;
+  el.style.opacity = Math.min(1, offset / PULL_TRIGGER);
+  if (text) el.querySelector('span').textContent = text;
+}
+
+document.addEventListener('touchstart', (e) => {
+  if (pulling || window.scrollY > 0 || e.touches.length !== 1 || $('edit-dialog').open) return;
+  pullStartY = e.touches[0].clientY;
+  pullOffset = 0;
+  $('pull').classList.remove('anim');
+}, { passive: true });
+
+document.addEventListener('touchmove', (e) => {
+  if (pullStartY === null) return;
+  if (window.scrollY > 0) {
+    pullStartY = null;
+    setPull(0);
+    return;
+  }
+  // Halva fingerrörelsen, så det känns lite trögt som i andra appar.
+  pullOffset = Math.min(Math.max(0, e.touches[0].clientY - pullStartY) / 2, PULL_TRIGGER + 20);
+  const ready = pullOffset >= PULL_TRIGGER;
+  $('pull').classList.toggle('ready', ready);
+  setPull(pullOffset, ready ? 'Släpp för att synka' : 'Dra ner för att synka');
+}, { passive: true });
+
+document.addEventListener('touchend', async () => {
+  if (pullStartY === null) return;
+  pullStartY = null;
+  const el = $('pull');
+  el.classList.add('anim');
+  if (pullOffset < PULL_TRIGGER) {
+    setPull(0);
+    return;
+  }
+  pulling = true;
+  navigator.vibrate?.(15);
+  el.classList.add('spinning');
+  el.querySelector('b').textContent = '⟳';
+  setPull(PULL_TRIGGER, 'Synkar…');
+  if (!syncCfg) {
+    toast('Synk är inte påslagen – se Inställningar');
+  } else if (await runSync({ manual: true })) {
+    toast('Synkad');
+  }
+  el.classList.remove('spinning', 'ready');
+  el.querySelector('b').textContent = '↓';
+  setPull(0);
+  pulling = false;
+});
 
 // ---------- Redigera ----------
 

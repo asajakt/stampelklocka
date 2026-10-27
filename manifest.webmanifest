@@ -1,6 +1,8 @@
 {
   "name": "Stämpelklocka",
   "short_name": "Stämpla",
+  "id": "./",
+  "description": "Stämpla in och ut och se arbetad tid med automatiskt rastavdrag",
   "lang": "sv",
   "start_url": "./",
   "scope": "./",
